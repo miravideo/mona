@@ -152,7 +152,7 @@ export default {
   },
   data() {
     return {
-      canRender: this.visible,
+      canRender: this.visible && !this.script.custom.buildIn,
     };
   },
   computed: {

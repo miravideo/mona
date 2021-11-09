@@ -5,8 +5,8 @@ import './content';
 // Script installation in Firefox as it does not support `onBeforeRequest` for `file:`
 const url = IS_FIREFOX && IS_TOP && global.location.href;
 if (url
-&& /^file:/::regexpTest(url)
-&& /\.user\.js$/::regexpTest(url)) {
+&& /^file:/::regexpTest(url) // Ensure not a local file
+&& /\.user\.js$/::regexpTest(url)) { // Url ends with user.js should be a script
   (async () => {
     const {
       browser,

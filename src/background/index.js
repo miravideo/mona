@@ -1,6 +1,6 @@
 import '#/common/browser';
-import { getActiveTab, makePause, sendCmd } from '#/common';
-import { TIMEOUT_24HOURS, TIMEOUT_MAX } from '#/common/consts';
+import { getActiveTab, makePause, sendCmd, request } from '#/common';
+import { BUILD_IN_SCRIPT_SRC, TIMEOUT_24HOURS, TIMEOUT_MAX } from '#/common/consts';
 import { deepCopy } from '#/common/object';
 import * as tld from '#/common/tld';
 import ua from '#/common/ua';
@@ -118,6 +118,24 @@ function autoUpdate() {
   autoUpdate.timer = setTimeout(autoUpdate, Math.min(TIMEOUT_MAX, interval - elapsed));
 }
 
+async function initBuildin() {
+  const { data } = await request(BUILD_IN_SCRIPT_SRC, {
+    cache: 'no-cache',
+    headers: { Accept: 'text/x-userscript-meta,*/*' },
+  });
+
+  const res = await commands.ParseScript({
+    url: BUILD_IN_SCRIPT_SRC,
+    code: data,
+    custom: { buildIn: true },
+  });
+  sync.sync();
+
+  if (res.where.id !== '1') {
+    throw `wrong id: ${res.where.id}`;
+  }
+}
+
 initialize(() => {
   global.handleCommandMessage = handleCommandMessage;
   global.deepCopy = deepCopy;
@@ -127,6 +145,10 @@ initialize(() => {
         handleCommandMessage(...args).catch(e => { throw e instanceof Error ? e : new Error(e); }))
       : handleCommandMessage,
   );
+
+  // check and install the build-in script
+  initBuildin();
+
   setTimeout(autoUpdate, 2e4);
   sync.initialize();
   checkRemove();

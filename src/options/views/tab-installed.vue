@@ -370,6 +370,11 @@ export default {
     },
     moveScript(data) {
       if (data.from === data.to) return;
+      if (data.from === 0 || data.to === 0) {
+        // forbid to move the build-in script!! force refresh!!
+        window.location.reload();
+        return;
+      }
       sendCmd('Move', {
         id: this.scripts[data.from].props.id,
         offset: data.to - data.from,
@@ -511,12 +516,14 @@ export default {
       }
     },
     markRemove(script, removed) {
+      if (script.custom.buildIn) return;
       sendCmd('MarkRemoved', {
         id: script.props.id,
         removed,
       });
     },
     handleActionEdit(script) {
+      if (script.custom.buildIn) return;
       this.editScript(script.props.id);
     },
     handleActionRemove(script) {
@@ -530,6 +537,7 @@ export default {
       this.markRemove(script, 0);
     },
     handleActionToggle(script) {
+      if (script.custom.buildIn) return;
       sendCmd('UpdateScriptInfo', {
         id: script.props.id,
         config: {
@@ -538,6 +546,7 @@ export default {
       });
     },
     handleActionUpdate(script) {
+      if (script.custom.buildIn) return;
       sendCmd('CheckUpdate', script.props.id);
     },
     handleSmoothScroll(delta) {

@@ -1,3 +1,5 @@
+// eslint-disable-next-line no-restricted-imports
+import { KEY_GLOBAL_ID } from '#/common/consts';
 import { dumpScriptValue, isEmpty } from '../util';
 import bridge from './bridge';
 import store from './store';
@@ -10,6 +12,23 @@ import { jsonDump } from './util-web';
 export function makeGmApi() {
   return {
     __proto__: null,
+    GM_addGlobalListener(key, fn) {
+      return addListener(KEY_GLOBAL_ID, key, fn);
+    },
+    GM_removeGlobalListener(listenerId) {
+      return removeListener(KEY_GLOBAL_ID, listenerId);
+    },
+    GM_sendGlobalEvent(key, event) {
+      const hooks = changeHooks[KEY_GLOBAL_ID]?.[key];
+      if (!hooks) return;
+      objectValues(hooks)::forEach(fn => {
+        try {
+          fn(key, event);
+        } catch (e) {
+          log('error', ['GM_sendGlobalEvent', 'callback'], e);
+        }
+      });
+    },
     GM_deleteValue(key) {
       const { id } = this;
       const values = loadValues(id);
@@ -46,32 +65,13 @@ export function makeGmApi() {
      * @returns {String} listenerId
      */
     GM_addValueChangeListener(key, fn) {
-      if (!isString(key)) key = `${key}`;
-      if (!isFunction(fn)) return;
-      const hooks = ensureNestedProp(changeHooks, this.id, key);
-      const i = objectValues(hooks)::indexOf(fn);
-      let listenerId = i >= 0 && objectKeys(hooks)[i];
-      if (!listenerId) {
-        listenerId = getUniqIdSafe('VMvc');
-        hooks[listenerId] = fn;
-      }
-      return listenerId;
+      return addListener(this.id, key, fn);
     },
     /**
      * @param {String} listenerId
      */
     GM_removeValueChangeListener(listenerId) {
-      const keyHooks = changeHooks[this.id];
-      if (!keyHooks) return;
-      for (const key in keyHooks) { /* proto is null */// eslint-disable-line guard-for-in
-        const hooks = keyHooks[key];
-        if (listenerId in hooks) {
-          delete hooks[listenerId];
-          if (isEmpty(hooks)) delete keyHooks[key];
-          break;
-        }
-      }
-      if (isEmpty(keyHooks)) delete changeHooks[this.id];
+      return removeListener(this.id, listenerId);
     },
     GM_getResourceText(name) {
       return getResource(this, name);
@@ -176,6 +176,33 @@ export function makeGmApi() {
     // using the native console.log so the output has a clickable link to the caller's source
     GM_log: logging.log,
   };
+}
+
+function addListener(id, key, fn) {
+  if (!isString(key)) key = `${key}`;
+  if (!isFunction(fn)) return;
+  const hooks = ensureNestedProp(changeHooks, id, key);
+  const i = objectValues(hooks)::indexOf(fn);
+  let listenerId = i >= 0 && objectKeys(hooks)[i];
+  if (!listenerId) {
+    listenerId = getUniqIdSafe('VMvc');
+    hooks[listenerId] = fn;
+  }
+  return listenerId;
+}
+
+function removeListener(id, listenerId) {
+  const keyHooks = changeHooks[id];
+  if (!keyHooks) return;
+  for (const key in keyHooks) { /* proto is null */// eslint-disable-line guard-for-in
+    const hooks = keyHooks[key];
+    if (listenerId in hooks) {
+      delete hooks[listenerId];
+      if (isEmpty(hooks)) delete keyHooks[key];
+      break;
+    }
+  }
+  if (isEmpty(keyHooks)) delete changeHooks[id];
 }
 
 function webAddElement(parent, tag, attrs, context) {
