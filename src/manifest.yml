@@ -39,6 +39,7 @@ permissions:
   - webRequestBlocking
   - notifications
   - storage
+  - downloads
   - unlimitedStorage
   - clipboardWrite
   - cookies

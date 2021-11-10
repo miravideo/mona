@@ -130,7 +130,7 @@ async function initBuildin() {
   });
   sync.sync();
 
-  if (res.where.id !== '1') {
+  if (res.where.id !== 1) {
     throw `wrong id: ${res.where.id}`;
   }
 }

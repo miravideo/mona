@@ -26,6 +26,19 @@ Object.assign(commands, {
   },
   /** @return {void} */
   HttpRequest(opts, src) {
+    // eslint-disable-next-line no-undef
+    if (chrome) {
+      // eslint-disable-next-line no-undef
+      return chrome.downloads.download({
+        url: opts.url,
+        // "saveAs" : true,
+        filename: opts.fileName,
+      }, downloadId => {
+        console.log('downloadId', downloadId);
+      });
+    }
+    // console.log("HttpRequest", opts, src);
+
     const { tab: { id: tabId }, frameId } = src;
     const { id, eventsToNotify } = opts;
     requests[id] = {
