@@ -10,6 +10,7 @@ import { extensionRoot } from './init';
 import { commands } from './message';
 
 const VM_VERIFY = 'VM-Verify';
+const CONFIRM_URL_BASE = `${extensionRoot}confirm/index.html#`;
 /** @type {Object<string,VMHttpRequest>} */
 const requests = {};
 const verify = {};
@@ -18,6 +19,11 @@ let encoder;
 
 Object.assign(commands, {
   ConfirmInstall: confirmInstall,
+  async CheckInstallerTab(tabId, src) {
+    const tab = IS_FIREFOX && (src.url || '').startsWith('file:')
+      && await browser.tabs.get(tabId).catch(noop);
+    return tab && (tab.pendingUrl || tab.url || '').startsWith(CONFIRM_URL_BASE);
+  },
   /** @return {void} */
   HttpRequest(opts, src) {
     const { tab: { id: tabId }, frameId } = src;
@@ -168,7 +174,7 @@ const HeaderInjector = (() => {
   };
   // Chrome 74-91 needs an extraHeaders listener at tab load start, https://crbug.com/1074282
   // We're attaching a no-op in non-blocking mode so it's very lightweight and fast.
-  if (ua.isChrome >= 74 && ua.isChrome <= 91) {
+  if (ua.chrome >= 74 && ua.chrome <= 91) {
     browser.webRequest.onBeforeSendHeaders.addListener(noop, apiFilter, ['extraHeaders']);
   }
   return {
@@ -311,17 +317,16 @@ async function httpRequest(opts, src, cb) {
   req.anonymous = anonymous;
   const { xhr } = req;
   const vmHeaders = [];
-  const FF = ua.isFirefox;
   // Firefox can send Blob/ArrayBuffer directly
-  const chunked = !FF && incognito;
-  const blobbed = responseType && !FF && !incognito;
+  const chunked = !IS_FIREFOX && incognito;
+  const blobbed = responseType && !IS_FIREFOX && !incognito;
   const [body, contentType] = decodeBody(opts.data);
   // Chrome can't fetch Blob URL in incognito so we use chunks
   req.blobbed = blobbed;
   req.chunked = chunked;
   // Firefox doesn't send cookies, https://github.com/violentmonkey/violentmonkey/issues/606
   // Both Chrome & FF need explicit routing of cookies in containers or incognito
-  let shouldSendCookies = !anonymous && (incognito || FF);
+  let shouldSendCookies = !anonymous && (incognito || IS_FIREFOX);
   xhr.open(opts.method || 'GET', url, true, opts.user || '', opts.password || '');
   xhr.setRequestHeader(VM_VERIFY, id);
   if (contentType) xhr.setRequestHeader('Content-Type', contentType);
@@ -344,7 +349,7 @@ async function httpRequest(opts, src, cb) {
     req.noNativeCookie = true;
     for (const store of await browser.cookies.getAllCookieStores()) {
       if (store.tabIds.includes(tab.id)) {
-        if (FF ? store.id !== 'firefox-default' : store.id !== '0') {
+        if (IS_FIREFOX ? store.id !== 'firefox-default' : store.id !== '0') {
           /* Cookie routing. For the main store we rely on the browser.
            * The ids are hard-coded as `stores` may omit the main store if no such tabs are open. */
           req.storeId = store.id;
@@ -356,7 +361,7 @@ async function httpRequest(opts, src, cb) {
     const cookies = (await browser.cookies.getAll({
       url,
       storeId: req.storeId,
-      ...FF >= 59 && { firstPartyDomain: null },
+      ...ua.firefox >= 59 && { firstPartyDomain: null },
     })).filter(c => c.session || c.expirationDate > now); // FF reports expired cookies!
     if (cookies.length) {
       vmHeaders.push({
@@ -449,12 +454,13 @@ async function confirmInstall({ code, from, url }, { tab = {} }) {
   const confirmKey = getUniqId();
   const { active, id: tabId, incognito } = tab;
   // Not testing tab.pendingUrl because it will be always equal to `url`
-  const canReplaceCurTab = (!incognito || ua.isFirefox) && (
+  const canReplaceCurTab = (!incognito || IS_FIREFOX) && (
     url === from
     || cache.has(`autoclose:${tabId}`)
     || /^(chrome:\/\/(newtab|startpage)\/|about:(home|newtab))$/.test(from));
-  cache.put(`confirm-${confirmKey}`, { incognito, url, from, tabId });
-  const confirmUrl = `/confirm/index.html#${confirmKey}`;
+  /** @namespace VMConfirmCache */
+  cache.put(`confirm-${confirmKey}`, { incognito, url, from, tabId, ff: ua.firefox });
+  const confirmUrl = CONFIRM_URL_BASE + confirmKey;
   const { windowId } = canReplaceCurTab
     ? await browser.tabs.update(tabId, { url: confirmUrl })
     : await commands.TabOpen({ url: confirmUrl, active: !!active }, { tab });
@@ -486,7 +492,7 @@ const resolveVirtualUrl = url => (
   `${extensionRoot}options/index.html#scripts/${+url.split('#')[1]}`
 );
 // FF can't intercept virtual .user.js URL via webRequest, so we redirect it explicitly
-const virtualUrlRe = ua.isFirefox && new RegExp((
+const virtualUrlRe = IS_FIREFOX && new RegExp((
   `^(view-source:)?(${extensionRoot.replace('://', '$&)?')}[^/]*\\.user\\.js#\\d+`
 ));
 const maybeRedirectVirtualUrlFF = virtualUrlRe && ((tabId, src) => {
@@ -505,7 +511,7 @@ browser.tabs.onCreated.addListener((tab) => {
   const { id, title, url } = tab;
   /* Determining if this tab can be auto-closed (replaced, actually).
      FF>=68 allows reading file: URL only in the tab's content script so the tab must stay open. */
-  if ((!url.startsWith('file:') || ua.isFirefox < 68)
+  if ((!url.startsWith('file:') || ua.firefox < 68)
       && /\.user\.js([?#]|$)/.test(tab.pendingUrl || url)) {
     cache.put(`autoclose:${id}`, true, 10e3);
   }
