@@ -162,7 +162,7 @@
        v-if="store.currentTab && store.currentTab.incognito"
        v-text="i18n('msgIncognitoChanges')"/>
     <footer>
-      <a href="https://violentmonkey.github.io/" :tabIndex="tabIndex" @click.prevent="onVisitWebsite" v-text="i18n('visitWebsite')" />
+      <a href="https://mirav.cn/" :tabIndex="tabIndex" @click.prevent="onVisitWebsite" v-text="i18n('visitWebsite')" />
     </footer>
     <div class="message" v-show="message">
       <div v-text="message"></div>
