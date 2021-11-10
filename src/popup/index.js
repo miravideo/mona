@@ -49,6 +49,7 @@ Object.assign(handlers, {
           }
         }
       });
+      console.log(metas);
       scope.push(...metas);
     }
   },

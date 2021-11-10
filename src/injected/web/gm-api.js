@@ -29,6 +29,17 @@ export function makeGmApi() {
         }
       });
     },
+    GM_regFn(key, fn) {
+      const hooks = changeHooks[KEY_GLOBAL_ID]?.[key];
+      if (hooks) throw `duplicate reg ${key}`;
+      addListener(KEY_GLOBAL_ID, key, fn);
+    },
+    GM_invokeFn(key, arg) {
+      const hooks = changeHooks[KEY_GLOBAL_ID]?.[key];
+      if (!hooks) throw `has not reg ${key}`;
+      const fn = hooks[objectKeys(hooks)[0]];
+      return fn(arg);
+    },
     GM_deleteValue(key) {
       const { id } = this;
       const values = loadValues(id);

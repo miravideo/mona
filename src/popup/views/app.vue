@@ -101,7 +101,7 @@
                  @contextmenu.exact.stop="onEditScript(item)"
                  @mousedown.middle.exact.stop="onEditScript(item)" />
           </div>
-          <div class="submenu-buttons" v-show="activeExtras === item || focusedItem === item">
+          <div class="submenu-buttons" v-show="!item.data.custom.buildIn && (activeExtras === item || focusedItem === item)">
             <!-- Using a standard tooltip that's shown after a delay to avoid nagging the user -->
             <div class="submenu-button" :tabIndex="tabIndex" @click="onEditScript(item)"
                  :title="i18n('buttonEditClickHint')">
@@ -354,6 +354,7 @@ export default {
       window.close();
     },
     onEditScript(item) {
+      if (item.data.custom.buildIn) return;
       sendCmd('OpenEditor', item.data.props.id);
       window.close();
     },
@@ -372,6 +373,7 @@ export default {
       }
     },
     onToggleScript(item) {
+      if (item.data.custom.buildIn) return;
       const { data } = item;
       const enabled = !data.config.enabled;
       sendCmd('UpdateScriptInfo', {
