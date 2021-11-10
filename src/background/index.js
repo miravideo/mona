@@ -3,7 +3,6 @@ import { getActiveTab, makePause, sendCmd, request } from '#/common';
 import { BUILD_IN_SCRIPT_SRC, TIMEOUT_24HOURS, TIMEOUT_MAX } from '#/common/consts';
 import { deepCopy } from '#/common/object';
 import * as tld from '#/common/tld';
-import ua from '#/common/ua';
 import * as sync from './sync';
 import { commands } from './utils';
 import { getData, checkRemove } from './utils/db';
@@ -140,9 +139,10 @@ initialize(() => {
   global.handleCommandMessage = handleCommandMessage;
   global.deepCopy = deepCopy;
   browser.runtime.onMessage.addListener(
-    ua.isFirefox // in FF a rejected Promise value is transferred only if it's an Error object
-      ? (...args) => (
-        handleCommandMessage(...args).catch(e => { throw e instanceof Error ? e : new Error(e); }))
+    IS_FIREFOX // in FF a rejected Promise value is transferred only if it's an Error object
+      ? (...args) => handleCommandMessage(...args).catch(e => (
+        Promise.reject(e instanceof Error ? e : new Error(e))
+      )) // Didn't use `throw` to avoid interruption in devtools with pause-on-exception enabled.
       : handleCommandMessage,
   );
 
@@ -153,9 +153,9 @@ initialize(() => {
   sync.initialize();
   checkRemove();
   setInterval(checkRemove, TIMEOUT_24HOURS);
-  if (ua.isChrome) {
+  const api = global.chrome.declarativeContent;
+  if (api) {
     // Using declarativeContent to run content scripts earlier than document_start
-    const api = global.chrome.declarativeContent;
     api.onPageChanged.getRules(async ([rule]) => {
       const id = rule?.id;
       const newId = process.env.INIT_FUNC_NAME;
