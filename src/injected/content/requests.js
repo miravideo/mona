@@ -38,7 +38,15 @@ bridge.addBackgroundHandlers({
     if ((msg.numChunks || 1) === 1) {
       req.gotChunks = true;
     }
-    const { blobbed, data, chunked, type } = msg;
+    const { blobbed, data, chunked, type, downloadId } = msg;
+
+    if (downloadId) {
+      // browser will download
+      bridge.post('HttpRequested', msg, req.realm);
+      if (msg.type === 'load') delete requests[id];
+      return;
+    }
+
     const isLoadEnd = type === 'loadend';
     // only CONTENT realm can read blobs from an extension:// URL
     const response = data

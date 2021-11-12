@@ -13,9 +13,32 @@ const VM_VERIFY = 'VM-Verify';
 const CONFIRM_URL_BASE = `${extensionRoot}confirm/index.html#`;
 /** @type {Object<string,VMHttpRequest>} */
 const requests = {};
+const downloads = {};
 const verify = {};
 const tabRequests = {};
+const { chrome } = global;
 let encoder;
+
+const isDownloadReq = (opts) => {
+  return (opts.overrideMimeType === 'application/octet-stream' && opts.responseType === 'blob' && opts.fileName);
+};
+
+if (chrome) {
+  chrome.downloads.onChanged.addListener(evt => {
+    console.info('onChanged', evt);
+    if (!downloads[evt.id]) return;
+    const { req, src } = downloads[evt.id];
+    const { tab: { id: tabId }, frameId } = src;
+
+    if (evt.state?.current === 'complete') {
+      sendTabCmd(tabId, 'HttpRequested', {
+        type: 'load', id: req.id, downloadId: evt.id,
+      }, { frameId });
+      delete downloads[evt.id];
+      delete requests[req.id];
+    }
+  });
+}
 
 Object.assign(commands, {
   ConfirmInstall: confirmInstall,
@@ -26,21 +49,27 @@ Object.assign(commands, {
   },
   /** @return {void} */
   HttpRequest(opts, src) {
-    // eslint-disable-next-line no-undef
-    if (chrome) {
-      // eslint-disable-next-line no-undef
+    const { tab: { id: tabId }, frameId } = src;
+    const { id, eventsToNotify } = opts;
+
+    // handle download
+    if (chrome && isDownloadReq(opts)) {
+      // console.info(opts);
       return chrome.downloads.download({
         url: opts.url,
         // "saveAs" : true,
         filename: opts.fileName,
       }, downloadId => {
-        console.log('downloadId', downloadId);
+        // console.info('downloadId', downloadId);
+        requests[id] = { id, downloadId, tabId, eventsToNotify, xhr: null };
+        downloads[downloadId] = { req: requests[id], opts, src };
+        if (eventsToNotify?.includes('progress')) {
+          sendTabCmd(tabId, 'HttpRequested', { type: 'progress', id, downloadId }, { frameId });
+        }
       });
     }
     // console.log("HttpRequest", opts, src);
 
-    const { tab: { id: tabId }, frameId } = src;
-    const { id, eventsToNotify } = opts;
     requests[id] = {
       id,
       tabId,
@@ -56,8 +85,15 @@ Object.assign(commands, {
   AbortRequest(id) {
     const req = requests[id];
     if (req) {
-      req.xhr.abort();
-      clearRequest(req);
+      // eslint-disable-next-line no-undef
+      if (chrome) {
+        // eslint-disable-next-line no-undef
+        chrome.downloads.cancel(req.id);
+        delete requests[req.id];
+      } else {
+        req.xhr.abort();
+        clearRequest(req);
+      }
     }
   },
   RevokeBlob(url) {

@@ -52,7 +52,12 @@ function callback(req, msg) {
   const { opts } = req;
   const cb = opts[`on${msg.type}`];
   if (cb) {
-    const { data } = msg;
+    const { data, downloadId } = msg;
+    if (downloadId) {
+      cb(msg);
+      if (msg.type === 'load') delete idMap[req.id];
+      return;
+    }
     const {
       response,
       responseHeaders: headers,
