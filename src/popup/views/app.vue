@@ -101,7 +101,8 @@
                  @contextmenu.exact.stop="onEditScript(item)"
                  @mousedown.middle.exact.stop="onEditScript(item)" />
           </div>
-          <div class="submenu-buttons" v-show="!item.data.custom.buildIn && (activeExtras === item || focusedItem === item)">
+          <div class="submenu-buttons"
+              v-show="!item.data.custom.buildIn && (activeExtras === item || focusedItem === item)">
             <!-- Using a standard tooltip that's shown after a delay to avoid nagging the user -->
             <div class="submenu-button" :tabIndex="tabIndex" @click="onEditScript(item)"
                  :title="i18n('buttonEditClickHint')">
