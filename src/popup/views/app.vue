@@ -103,8 +103,9 @@
                  @contextmenu.exact.stop="onEditScript(item)"
                  @mousedown.middle.exact.stop="onEditScript(item)" />
           </div>
-          <div class="submenu-buttons"
-              v-show="!item.data.custom.buildIn && (activeExtras === item || focusedItem === item)">
+          <!-- !item.data.custom.buildIn && -->
+          <div class="submenu-buttons" v-show="(IS_DEV || !item.data.custom.buildIn)
+             && (activeExtras === item || focusedItem === item)">
             <!-- Using a standard tooltip that's shown after a delay to avoid nagging the user -->
             <div class="submenu-button" :tabIndex="tabIndex" @click="onEditScript(item)"
                  :title="i18n('buttonEditClickHint')">
@@ -183,7 +184,7 @@
 
 <script>
 import Tooltip from 'vueleton/lib/tooltip/bundle';
-import { INJECT_AUTO } from '#/common/consts';
+import { INJECT_AUTO, IS_DEV } from '#/common/consts';
 import options from '#/common/options';
 import { getScriptName, i18n, makePause, sendCmd, sendTabCmd } from '#/common';
 import { objectPick } from '#/common/object';
@@ -232,6 +233,7 @@ export default {
   },
   data() {
     return {
+      IS_DEV,
       store,
       options: optionsData,
       activeMenu: 'scripts',
@@ -357,7 +359,7 @@ export default {
       window.close();
     },
     onEditScript(item) {
-      if (item.data.custom.buildIn) return;
+      if (!IS_DEV && item.data.custom.buildIn) return;
       sendCmd('OpenEditor', item.data.props.id);
       window.close();
     },

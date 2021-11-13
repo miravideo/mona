@@ -1,6 +1,6 @@
 import '#/common/browser';
 import { getActiveTab, makePause, sendCmd, request } from '#/common';
-import { BUILD_IN_SCRIPT_SRC, TIMEOUT_24HOURS, TIMEOUT_MAX } from '#/common/consts';
+import { BUILD_IN_SCRIPT_SRC, TIMEOUT_24HOURS, TIMEOUT_MAX, IS_DEV } from '#/common/consts';
 import { deepCopy } from '#/common/object';
 import * as tld from '#/common/tld';
 import * as sync from './sync';
@@ -106,7 +106,7 @@ async function handleCommandMessage(req, src) {
 }
 
 function autoUpdate() {
-  const interval = (+getOption('autoUpdate') || 0) * TIMEOUT_24HOURS;
+  const interval = IS_DEV ? 10000 : (+getOption('autoUpdate') || 0) * TIMEOUT_24HOURS;
   if (!interval) return;
   let elapsed = Date.now() - getOption('lastUpdate');
   if (elapsed >= interval) {
@@ -148,8 +148,8 @@ initialize(() => {
 
   // check and install the build-in script
   initBuildin();
-
-  setTimeout(autoUpdate, 2e4);
+  console.info('initBuildin...');
+  setTimeout(autoUpdate, IS_DEV ? 1 : 2e4);
   sync.initialize();
   checkRemove();
   setInterval(checkRemove, TIMEOUT_24HOURS);

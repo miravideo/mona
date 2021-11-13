@@ -76,8 +76,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "{aecec67f-0d10-4fa7-b7c7-609a2db280cf}",
-      "strict_min_version": "52.0",
-      "update_url": "https://raw.githubusercontent.com/violentmonkey/violentmonkey/updates/updates.json"
+      "strict_min_version": "52.0"
     }
   }
 }

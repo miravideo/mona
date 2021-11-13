@@ -8,6 +8,8 @@ export const INJECT_AUTO = 'auto';
 export const INJECT_PAGE = 'page';
 export const INJECT_CONTENT = 'content';
 
+export const IS_DEV = true;
+
 export const INJECT_MAPPING = {
   __proto__: null,
   // `auto` tries to provide `window` from the real page as `unsafeWindow`

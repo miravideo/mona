@@ -1,5 +1,5 @@
 import { getScriptName, i18n, request, compareVersion, sendCmd, trueJoin } from '#/common';
-import { CMD_SCRIPT_UPDATE } from '#/common/consts';
+import { CMD_SCRIPT_UPDATE, IS_DEV } from '#/common/consts';
 import { fetchResources, getScriptById, getScripts, parseScript } from './db';
 import { parseMeta } from './script';
 import { getOption, setOption } from './options';
@@ -82,6 +82,11 @@ async function doCheckUpdate(script, notes) {
 async function downloadUpdate({ props: { id }, meta, custom }) {
   const downloadURL = custom.downloadURL || meta.downloadURL || custom.lastInstallURL;
   const updateURL = custom.updateURL || meta.updateURL || downloadURL;
+  // if (IS_DEV && updateURL) {
+  //   // new URL(updateURL);
+  //   console.info('downloadUpdate', id, meta, updateURL);
+  //   updateURL = null;
+  // }
   if (!updateURL) throw false;
   let errorMessage;
   const update = {};
