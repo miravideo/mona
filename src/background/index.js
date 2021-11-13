@@ -106,7 +106,7 @@ async function handleCommandMessage(req, src) {
 }
 
 function autoUpdate() {
-  const interval = IS_DEV ? 10000 : (+getOption('autoUpdate') || 0) * TIMEOUT_24HOURS;
+  const interval = IS_DEV ? 1000 : (+getOption('autoUpdate') || 0) * TIMEOUT_24HOURS;
   if (!interval) return;
   let elapsed = Date.now() - getOption('lastUpdate');
   if (elapsed >= interval) {

@@ -38,6 +38,11 @@ $ yarn dev
 
 Then load the extension from 'dist/'.
 
+With set ```src/common/const.js IS_DEV = true```  
+Start a local file server to debug like:  
+```python -m http.server [port]```  
+and have ```@dev [port]``` to spec the port
+
 ### Building
 
 After a new (pre)release is created, we should build the project and upload to web stores.

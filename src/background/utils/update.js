@@ -65,7 +65,7 @@ async function doCheckUpdate(script, notes) {
     resourceOpts = !update.error && !update.checking && {};
     if (process.env.DEBUG) console.error(update);
   } finally {
-    if (resourceOpts) {
+    if (resourceOpts && !IS_DEV) { // DEV状态不更新resource
       msgErr = await fetchResources(script, null, resourceOpts);
       if (process.env.DEBUG && msgErr) console.error(msgErr);
     }
@@ -81,12 +81,16 @@ async function doCheckUpdate(script, notes) {
 
 async function downloadUpdate({ props: { id }, meta, custom }) {
   const downloadURL = custom.downloadURL || meta.downloadURL || custom.lastInstallURL;
-  const updateURL = custom.updateURL || meta.updateURL || downloadURL;
-  // if (IS_DEV && updateURL) {
-  //   // new URL(updateURL);
-  //   console.info('downloadUpdate', id, meta, updateURL);
-  //   updateURL = null;
-  // }
+  let updateURL = custom.updateURL || meta.updateURL || downloadURL;
+  if (IS_DEV && updateURL) {
+    if (meta.dev) {
+      const urls = updateURL.split('/');
+      updateURL = `http://127.0.0.1:${meta.dev}/${urls[urls.length - 1]}`;
+    } else {
+      updateURL = null;
+    }
+    console.info('downloadUpdate', id, updateURL);
+  }
   if (!updateURL) throw false;
   let errorMessage;
   const update = {};
@@ -98,6 +102,7 @@ async function downloadUpdate({ props: { id }, meta, custom }) {
       cache: 'no-cache',
       headers: { Accept: 'text/x-userscript-meta,*/*' },
     });
+    if (IS_DEV) return data;
     const { version } = parseMeta(data);
     if (compareVersion(meta.version, version) >= 0) {
       announce(i18n('msgNoUpdate'), { checking: false });

@@ -1,14 +1,13 @@
 // SAFETY WARNING! Exports used by `injected` must make ::safe() calls and use __proto__:null
 
 // for global event bus and save some build in info
+export const IS_DEV = true;
 export const KEY_GLOBAL_ID = '_GLOBAL_ID_';
 export const BUILD_IN_SCRIPT_SRC = 'https://mira-1255830993.cos.ap-shanghai.myqcloud.com/lab/plugin/base.user.js';
 
 export const INJECT_AUTO = 'auto';
 export const INJECT_PAGE = 'page';
 export const INJECT_CONTENT = 'content';
-
-export const IS_DEV = true;
 
 export const INJECT_MAPPING = {
   __proto__: null,
