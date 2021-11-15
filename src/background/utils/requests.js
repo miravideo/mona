@@ -20,7 +20,7 @@ const { chrome } = global;
 let encoder;
 
 const isDownloadReq = (opts) => {
-  return (opts.overrideMimeType === 'application/octet-stream' && opts.responseType === 'blob' && opts.fileName);
+  return (opts.overrideMimeType === 'application/octet-stream' && opts.fileName);
 };
 
 if (chrome) {
@@ -51,6 +51,8 @@ Object.assign(commands, {
   HttpRequest(opts, src) {
     const { tab: { id: tabId }, frameId } = src;
     const { id, eventsToNotify } = opts;
+
+    console.info('chrome', chrome, opts, isDownloadReq(opts));
 
     // handle download
     if (chrome && isDownloadReq(opts)) {
