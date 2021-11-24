@@ -89,7 +89,7 @@ async function downloadUpdate({ props: { id }, meta, custom }) {
     } else {
       updateURL = null;
     }
-    console.info('downloadUpdate', id, updateURL);
+    // console.info('downloadUpdate', id, updateURL);
   }
   if (!updateURL) throw false;
   let errorMessage;

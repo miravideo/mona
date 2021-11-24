@@ -121,6 +121,7 @@ async function start(req, context, fileName) {
     'password',
     'timeout',
     'url',
+    'native',
     'user',
   ]), context);
 }

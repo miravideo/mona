@@ -19,10 +19,6 @@ const tabRequests = {};
 const { chrome } = global;
 let encoder;
 
-const isDownloadReq = (opts) => {
-  return (opts.overrideMimeType === 'application/octet-stream' && opts.fileName);
-};
-
 if (chrome) {
   chrome.downloads.onChanged.addListener(evt => {
     console.info('onChanged', evt);
@@ -34,9 +30,15 @@ if (chrome) {
       sendTabCmd(tabId, 'HttpRequested', {
         type: 'load', id: req.id, downloadId: evt.id,
       }, { frameId });
-      delete downloads[evt.id];
-      delete requests[req.id];
+    } else if (evt.state?.current === 'interrupted') {
+      sendTabCmd(tabId, 'HttpRequested', {
+        type: 'error', id: req.id, downloadId: evt.id,
+      }, { frameId });
+    } else {
+      return;
     }
+    delete downloads[evt.id];
+    delete requests[req.id];
   });
 }
 
@@ -52,10 +54,10 @@ Object.assign(commands, {
     const { tab: { id: tabId }, frameId } = src;
     const { id, eventsToNotify } = opts;
 
-    console.info('chrome', chrome, opts, isDownloadReq(opts));
+    console.info('req opts', opts);
 
     // handle download
-    if (chrome && isDownloadReq(opts)) {
+    if (chrome && opts.native) {
       // console.info(opts);
       return chrome.downloads.download({
         url: opts.url,
