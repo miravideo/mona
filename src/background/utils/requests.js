@@ -59,9 +59,14 @@ Object.assign(commands, {
     // handle download
     if (chrome && opts.native) {
       // console.info(opts);
+      let headers = [];
+      if (opts.headers) {
+        headers = Object.keys(opts.headers).map(name => ({ name, value: opts.headers[name] }));
+      }
+
       return chrome.downloads.download({
         url: opts.url,
-        // "saveAs" : true,
+        headers,
         filename: opts.fileName,
       }, downloadId => {
         // console.info('downloadId', downloadId);
@@ -72,7 +77,6 @@ Object.assign(commands, {
         }
       });
     }
-    // console.log("HttpRequest", opts, src);
 
     requests[id] = {
       id,

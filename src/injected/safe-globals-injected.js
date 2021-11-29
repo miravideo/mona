@@ -38,7 +38,7 @@ export const getOwnProp = (obj, key) => (
  * on `push` and `arr[i] = 123`, as well as via getters if you read beyond
  * its length or from an unassigned `hole`. */
 export const setOwnProp = (obj, key, value) => (
-  defineProperty(obj, key, {
+  obj && defineProperty(obj, key, {
     __proto__: null,
     value,
     configurable: true,

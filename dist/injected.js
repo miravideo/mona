@@ -1,4 +1,4 @@
-if (window['Violentmonkey:nODql6GvvDo='] !== 1) { /* eslint-disable no-unused-vars */
+if (window['Violentmonkey:dOWFGfeH9Ys='] !== 1) { /* eslint-disable no-unused-vars */
 
 /**
  * This file is used by both `injected` and `injected-web` entries.
@@ -41,7 +41,7 @@ const getOwnProp = (obj, key) => safeCall(hasOwnProperty, obj, key) ? obj[key] :
  * its length or from an unassigned `hole`. */
 
 
-const setOwnProp = (obj, key, value) => defineProperty(obj, key, {
+const setOwnProp = (obj, key, value) => obj && defineProperty(obj, key, {
   __proto__: null,
   value,
   configurable: true,
@@ -1736,7 +1736,7 @@ async function getDataFF(viaMessaging) {
 
 function getXhrInjection() {
   try {
-    const quotedKey = `"${"Violentmonkey:nODql6GvvDo="}"`; // Accessing document.cookie may throw due to CSP sandbox
+    const quotedKey = `"${"Violentmonkey:dOWFGfeH9Ys="}"`; // Accessing document.cookie may throw due to CSP sandbox
 
     const cookieValue = document.cookie.split(`${quotedKey}=`)[1];
     const blobId = cookieValue && cookieValue.split(';', 1)[0];
@@ -1781,7 +1781,7 @@ __webpack_require__.r(__webpack_exports__);
  * like VAULT_WRITER to avoid interception by sites that can add listeners for all of our
  * INIT_FUNC_NAME ids even though we change it now with each release. */
 
-const INIT_FUNC_NAME = "Violentmonkey:nODql6GvvDo=";
+const INIT_FUNC_NAME = "Violentmonkey:dOWFGfeH9Ys=";
 const VAULT_WRITER = `${IS_FIREFOX ? VM_UUID : INIT_FUNC_NAME}VW`;
 const VAULT_WRITER_ACK = `${VAULT_WRITER}+`;
 let contLists;

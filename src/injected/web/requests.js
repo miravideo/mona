@@ -50,7 +50,8 @@ function parseData(req, msg) {
 // request object functions
 function callback(req, msg) {
   const { opts } = req;
-  const cb = opts[`on${msg.type}`];
+  let cb = opts[`on${msg.type}`];
+  if (!cb && msg.type === 'loadend') cb = opts.onload;
   if (cb) {
     const { data, downloadId } = msg;
     if (downloadId) {
@@ -66,14 +67,16 @@ function callback(req, msg) {
     if (response && !('raw' in req)) {
       req.raw = response;
     }
-    defineProperty(data, 'response', {
-      __proto__: null,
-      get() {
-        const value = 'raw' in req ? parseData(req, msg) : req.response;
-        defineProperty(this, 'response', { __proto__: null, value });
-        return value;
-      },
-    });
+    if (data) {
+      defineProperty(data, 'response', {
+        __proto__: null,
+        get() {
+          const value = 'raw' in req ? parseData(req, msg) : req.response;
+          defineProperty(this, 'response', { __proto__: null, value });
+          return value;
+        },
+      });
+    }
     if (headers != null) req.headers = headers;
     if (text != null) req.text = getOwnProp(text, 0) === 'same' ? response : text;
     setOwnProp(data, 'context', opts.context);
@@ -113,7 +116,7 @@ async function start(req, context, fileName) {
       'readystatechange',
       'timeout',
     ]::filter(key => isFunction(getOwnProp(opts, `on${key}`))),
-    xhrType: getResponseType(opts.responseType),
+    xhrType: getResponseType(opts),
   }::pickIntoThis(opts, [
     'headers',
     'method',
