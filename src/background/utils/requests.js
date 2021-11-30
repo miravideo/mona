@@ -8,6 +8,7 @@ import cache from './cache';
 import { isUserScript, parseMeta } from './script';
 import { extensionRoot } from './init';
 import { commands } from './message';
+import { downloadM3u8 } from './m3u8';
 
 const VM_VERIFY = 'VM-Verify';
 const CONFIRM_URL_BASE = `${extensionRoot}confirm/index.html#`;
@@ -21,7 +22,7 @@ let encoder;
 
 if (chrome) {
   chrome.downloads.onChanged.addListener(evt => {
-    console.info('onChanged', evt);
+    console.info('downloads onChanged', evt);
     if (!downloads[evt.id]) return;
     const { req, src } = downloads[evt.id];
     const { tab: { id: tabId }, frameId } = src;
@@ -56,8 +57,23 @@ Object.assign(commands, {
 
     console.info('req opts', opts);
 
-    // handle download
-    if (chrome && opts.native) {
+    if (opts.type === 'm3u8') {
+      const downloadId = id; // a fake one
+      opts.onprogress = (progress) => {
+        if (eventsToNotify?.includes('progress')) {
+          sendTabCmd(tabId, 'HttpRequested', { type: 'progress', id, downloadId, progress }, { frameId });
+        }
+      };
+      opts.onload = () => {
+        sendTabCmd(tabId, 'HttpRequested', { type: 'load', id, downloadId }, { frameId });
+      };
+      opts.onerror = (error) => {
+        sendTabCmd(tabId, 'HttpRequested', { type: 'error', id, downloadId, error }, { frameId });
+      };
+      return downloadM3u8(opts);
+    }
+
+    if (opts.type === 'native') {
       // console.info(opts);
       let headers = [];
       if (opts.headers) {
@@ -69,7 +85,6 @@ Object.assign(commands, {
         headers,
         filename: opts.fileName,
       }, downloadId => {
-        // console.info('downloadId', downloadId);
         requests[id] = { id, downloadId, tabId, eventsToNotify, xhr: null };
         downloads[downloadId] = { req: requests[id], opts, src };
         if (eventsToNotify?.includes('progress')) {
@@ -313,6 +328,24 @@ function xhrCallbackWrapper(req) {
     // only send response when XHR is complete
     const shouldSendResponse = xhr.readyState === 4 && shouldNotify && !sent;
     lastPromise = lastPromise.then(async () => {
+      if (shouldSendResponse && blobbed && req.fileName && chrome) {
+        sent = true;
+        return chrome.downloads.download({
+          url: URL.createObjectURL(response),
+          filename: req.fileName,
+        }, downloadId => {
+          req.cb({
+            blobbed,
+            chunked,
+            contentType,
+            dataSize,
+            id,
+            type,
+            data: { finalUrl: xhr.responseURL, response: '', responseText: downloadId },
+          });
+        });
+      }
+
       await req.cb({
         blobbed,
         chunked,
@@ -371,6 +404,7 @@ async function httpRequest(opts, src, cb) {
   const req = requests[id];
   if (!req || req.cb) return;
   req.cb = cb;
+  req.fileName = opts.fileName;
   req.anonymous = anonymous;
   const { xhr } = req;
   const vmHeaders = [];

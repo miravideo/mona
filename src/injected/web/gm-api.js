@@ -115,7 +115,8 @@ export function makeGmApi() {
         onload = arg1.onload;
         opts::pickIntoThis(arg1, [
           'url',
-          'native',
+          'type',
+          'data',
           'headers',
           'timeout',
           'onerror',
