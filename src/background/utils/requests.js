@@ -73,25 +73,24 @@ Object.assign(commands, {
       return downloadM3u8(opts);
     }
 
-    if (opts.type === 'native') {
-      // console.info(opts);
-      let headers = [];
-      if (opts.headers) {
-        headers = Object.keys(opts.headers).map(name => ({ name, value: opts.headers[name] }));
-      }
-
-      return chrome.downloads.download({
-        url: opts.url,
-        headers,
-        filename: opts.fileName,
-      }, downloadId => {
-        requests[id] = { id, downloadId, tabId, eventsToNotify, xhr: null };
-        downloads[downloadId] = { req: requests[id], opts, src };
-        if (eventsToNotify?.includes('progress')) {
-          sendTabCmd(tabId, 'HttpRequested', { type: 'progress', id, downloadId }, { frameId });
-        }
-      });
-    }
+    // if (!opts.headers.Referer && !opts.headers['User-Agent']) {
+    //   // console.info(opts);
+    //   let headers = [];
+    //   if (opts.headers) {
+    //     headers = Object.keys(opts.headers).map(name => ({ name, value: opts.headers[name] }));
+    //   }
+    //   return chrome.downloads.download({
+    //     url: opts.url,
+    //     headers,
+    //     filename: opts.fileName,
+    //   }, downloadId => {
+    //     requests[id] = { id, downloadId, tabId, eventsToNotify, xhr: null };
+    //     downloads[downloadId] = { req: requests[id], opts, src };
+    //     if (eventsToNotify?.includes('progress')) {
+    //       sendTabCmd(tabId, 'HttpRequested', { type: 'progress', id, downloadId }, { frameId });
+    //     }
+    //   });
+    // }
 
     requests[id] = {
       id,
