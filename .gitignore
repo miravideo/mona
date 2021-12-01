@@ -4,3 +4,5 @@ node_modules/
 /tmp/
 /dist-assets/
 .DS_Store
+yarn.lock
+package-lock.json
