@@ -102,8 +102,12 @@ async function downloadUpdate({ props: { id }, meta, custom }) {
       cache: 'no-cache',
       headers: { Accept: 'text/x-userscript-meta,*/*' },
     });
-    if (IS_DEV) return data;
     const { version } = parseMeta(data);
+    if (IS_DEV) {
+      if (meta.version === version) throw false;
+      console.info('update', meta.name, version, compareVersion(meta.version, version));
+      return data;
+    }
     if (compareVersion(meta.version, version) >= 0) {
       announce(i18n('msgNoUpdate'), { checking: false });
     } else if (!downloadURL) {
