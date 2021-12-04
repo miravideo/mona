@@ -329,8 +329,9 @@ function xhrCallbackWrapper(req) {
     lastPromise = lastPromise.then(async () => {
       if (shouldSendResponse && blobbed && req.fileName && chrome) {
         sent = true;
+        const blobUrl = URL.createObjectURL(response);
         return chrome.downloads.download({
-          url: URL.createObjectURL(response),
+          url: blobUrl,
           filename: req.fileName,
         }, downloadId => {
           req.cb({
@@ -342,6 +343,7 @@ function xhrCallbackWrapper(req) {
             type,
             data: { finalUrl: xhr.responseURL, response: '', responseText: downloadId },
           });
+          URL.revokeObjectURL(blobUrl);
         });
       }
 

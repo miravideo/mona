@@ -181,6 +181,7 @@ const dealTS = function (rawData, index, opts, callback) {
         filename: opts.fileName,
       }, downloadId => {
         opts.onload()
+        URL.revokeObjectURL(res.downloadLink);
       });
     })
   }
