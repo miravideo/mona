@@ -135,7 +135,7 @@ const downloadTS = function (opts) {
         success: (data) => {
           statusList[i].status = 'succ'
           dealTS(data, i, opts, () => {
-            opts.onprogress(mediaFileList.length / tsList.length)
+            opts.onprogress(mediaFileList.length, tsList.length + 1)
             download()
           })
         },

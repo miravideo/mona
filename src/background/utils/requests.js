@@ -9,6 +9,12 @@ import { isUserScript, parseMeta } from './script';
 import { extensionRoot } from './init';
 import { commands } from './message';
 import { downloadM3u8 } from './m3u8';
+import { mergeVideo } from './merge-video';
+
+const reqHandler = {
+  m3u8: downloadM3u8,
+  merge: mergeVideo,
+};
 
 const VM_VERIFY = 'VM-Verify';
 const CONFIRM_URL_BASE = `${extensionRoot}confirm/index.html#`;
@@ -22,7 +28,7 @@ let encoder;
 
 if (chrome) {
   chrome.downloads.onChanged.addListener(evt => {
-    console.info('downloads onChanged', evt);
+    // console.info('downloads onChanged', evt);
     if (!downloads[evt.id]) return;
     const { req, src } = downloads[evt.id];
     const { tab: { id: tabId }, frameId } = src;
@@ -57,40 +63,26 @@ Object.assign(commands, {
 
     console.info('req opts', opts);
 
-    if (opts.type === 'm3u8') {
-      const downloadId = id; // a fake one
-      opts.onprogress = (progress) => {
+    if (reqHandler[opts.type]) {
+      const downloadId = id; // fake downloadId for inject.js
+      opts.src = src;
+      opts.requests = requests; // needed to append req in mergeVideo
+      opts.onprogress = (loaded, total) => {
         if (eventsToNotify?.includes('progress')) {
-          sendTabCmd(tabId, 'HttpRequested', { type: 'progress', id, downloadId, progress }, { frameId });
+          // console.info('onprogress', {loaded, total});
+          sendTabCmd(tabId, 'HttpRequested', {
+            type: 'progress', id, downloadId, loaded, total,
+          }, { frameId });
         }
       };
       opts.onload = () => {
-        sendTabCmd(tabId, 'HttpRequested', { type: 'load', id, downloadId }, { frameId });
+        sendTabCmd(tabId, 'HttpRequested', { type: 'load', downloadId, id }, { frameId });
       };
       opts.onerror = (error) => {
-        sendTabCmd(tabId, 'HttpRequested', { type: 'error', id, downloadId, error }, { frameId });
+        sendTabCmd(tabId, 'HttpRequested', { type: 'error', downloadId, id, error }, { frameId });
       };
-      return downloadM3u8(opts);
+      return reqHandler[opts.type](opts, httpRequest);
     }
-
-    // if (!opts.headers.Referer && !opts.headers['User-Agent']) {
-    //   // console.info(opts);
-    //   let headers = [];
-    //   if (opts.headers) {
-    //     headers = Object.keys(opts.headers).map(name => ({ name, value: opts.headers[name] }));
-    //   }
-    //   return chrome.downloads.download({
-    //     url: opts.url,
-    //     headers,
-    //     filename: opts.fileName,
-    //   }, downloadId => {
-    //     requests[id] = { id, downloadId, tabId, eventsToNotify, xhr: null };
-    //     downloads[downloadId] = { req: requests[id], opts, src };
-    //     if (eventsToNotify?.includes('progress')) {
-    //       sendTabCmd(tabId, 'HttpRequested', { type: 'progress', id, downloadId }, { frameId });
-    //     }
-    //   });
-    // }
 
     requests[id] = {
       id,
@@ -99,9 +91,12 @@ Object.assign(commands, {
       xhr: new XMLHttpRequest(),
     };
     (tabRequests[tabId] || (tabRequests[tabId] = {}))[id] = 1;
-    httpRequest(opts, src, res => requests[id] && (
-      sendTabCmd(tabId, 'HttpRequested', res, { frameId })
-    ));
+    httpRequest(opts, src, res => {
+      // console.info({ res, req: requests[id] });
+      if (requests[id]) {
+        sendTabCmd(tabId, 'HttpRequested', res, { frameId });
+      }
+    });
   },
   /** @return {void} */
   AbortRequest(id) {
@@ -293,7 +288,7 @@ function xhrCallbackWrapper(req) {
   let response;
   let responseText;
   let responseHeaders;
-  let sent = false;
+  // let sent = false;
   const { id, blobbed, chunked, xhr } = req;
   // Chrome encodes messages to UTF8 so they can grow up to 4x but 64MB is the message size limit
   const getChunk = blobbed && blob2objectUrl || chunked && blob2chunk;
@@ -311,7 +306,7 @@ function xhrCallbackWrapper(req) {
     }
     if (xhr.response !== response) {
       response = xhr.response;
-      sent = false;
+      // sent = false;
       try {
         responseText = xhr.responseText;
         if (responseText === response) responseText = ['same'];
@@ -325,28 +320,39 @@ function xhrCallbackWrapper(req) {
     }
     const shouldNotify = req.eventsToNotify.includes(type);
     // only send response when XHR is complete
-    const shouldSendResponse = xhr.readyState === 4 && shouldNotify && !sent;
+    const shouldSendResponse = xhr.readyState === 4 && shouldNotify;
     lastPromise = lastPromise.then(async () => {
-      if (shouldSendResponse && blobbed && req.fileName && chrome) {
-        sent = true;
-        const blobUrl = URL.createObjectURL(response);
-        return chrome.downloads.download({
-          url: blobUrl,
-          filename: req.fileName,
-        }, downloadId => {
-          req.cb({
-            blobbed,
-            chunked,
-            contentType,
-            dataSize,
-            id,
-            type,
-            data: { finalUrl: xhr.responseURL, response: '', responseText: downloadId },
+      if (shouldSendResponse && blobbed && req.type === 'download') {
+        if (req.fileName && chrome) {
+          const blobUrl = URL.createObjectURL(response);
+          return chrome.downloads.download({
+            url: blobUrl,
+            filename: req.fileName,
+          }, downloadId => {
+            req.cb({
+              blobbed,
+              chunked,
+              contentType,
+              dataSize,
+              id,
+              type,
+              data: { finalUrl: xhr.responseURL, response: '', responseText: downloadId },
+            });
+            URL.revokeObjectURL(blobUrl);
           });
-          URL.revokeObjectURL(blobUrl);
+        }
+        return req.cb({
+          blobbed,
+          chunked,
+          contentType,
+          dataSize,
+          id,
+          type,
+          data: response,
         });
       }
 
+      // console.info({ evt });
       await req.cb({
         blobbed,
         chunked,
@@ -405,6 +411,7 @@ async function httpRequest(opts, src, cb) {
   const req = requests[id];
   if (!req || req.cb) return;
   req.cb = cb;
+  req.type = opts.type;
   req.fileName = opts.fileName;
   req.anonymous = anonymous;
   const { xhr } = req;

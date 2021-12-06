@@ -159,6 +159,9 @@ function copyZip() {
   return gulp.src([
     'node_modules/@zip.js/zip.js/dist/zip-no-worker.min.js',
     'node_modules/@zip.js/zip.js/dist/z-worker.js',
+    'node_modules/@ffmpeg/core/dist/ffmpeg-core.js',
+    'node_modules/@ffmpeg/core/dist/ffmpeg-core.worker.js',
+    'node_modules/@ffmpeg/core/dist/ffmpeg-core.wasm',
   ])
   .pipe(gulp.dest(`${DIST}/public/lib`));
 }

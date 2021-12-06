@@ -21,6 +21,7 @@ browser_action:
 background:
   scripts: []
 options_page: options/index.html
+content_security_policy: "script-src 'self' blob: 'unsafe-eval' 'wasm-eval'; object-src 'self' blob: 'wasm-eval'"
 options_ui:
   page: options/index.html
   open_in_tab: true
