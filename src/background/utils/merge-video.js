@@ -89,7 +89,9 @@ export async function mergeVideo(opts, httpRequest) {
   // console.info({ vals });
   const out = await merge(vals[1], vals[2]);
   // console.info('out', { out });
-  const url = URL.createObjectURL(new Blob([out], { type : 'video/mp4' }));
+  const blobConf = {};
+  blobConf.type = 'video/mp4';
+  const url = URL.createObjectURL(new Blob([out], blobConf));
   // console.info('res', { url, filename: opts.fileName });
   chrome.downloads.download({
     url,
