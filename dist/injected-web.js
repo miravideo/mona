@@ -1,5 +1,5 @@
-if (window['Violentmonkey:BWVhWPP8nIg='] !== 1)
-        window['Violentmonkey:BWVhWPP8nIg='] = function (IS_FIREFOX,__HANDSHAKE_ID__,__VAULT_ID__) {
+if (window['Violentmonkey:ZTtqcBBVZ8w='] !== 1)
+        window['Violentmonkey:ZTtqcBBVZ8w='] = function (IS_FIREFOX,__HANDSHAKE_ID__,__VAULT_ID__) {
           const module = { __proto__: null };
           /* eslint-disable no-unused-vars */
 

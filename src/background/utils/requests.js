@@ -8,11 +8,11 @@ import cache from './cache';
 import { isUserScript, parseMeta } from './script';
 import { extensionRoot } from './init';
 import { commands } from './message';
-import { downloadM3u8 } from './m3u8';
-import { mergeVideo } from './merge-video';
+// import { downloadM3u8 } from './m3u8';
+import { mergeVideo, mergeM3u8 } from './merge-video';
 
 const reqHandler = {
-  m3u8: downloadM3u8,
+  m3u8: mergeM3u8,
   merge: mergeVideo,
 };
 
@@ -75,8 +75,16 @@ Object.assign(commands, {
           }, { frameId });
         }
       };
-      opts.onload = () => {
-        sendTabCmd(tabId, 'HttpRequested', { type: 'load', downloadId, id }, { frameId });
+      opts.onload = (data) => {
+        const res = { type: 'load', downloadId, data, id };
+        if (data instanceof Blob) {
+          res.blobbed = true;
+          res.chunked = false;
+          res.contentType = 'application/octet-stream';
+          res.data = { response: blob2objectUrl(data), status: '200' };
+          delete res.downloadId;
+        }
+        sendTabCmd(tabId, 'HttpRequested', res, { frameId });
       };
       opts.onerror = (error) => {
         sendTabCmd(tabId, 'HttpRequested', { type: 'error', downloadId, id, error }, { frameId });
