@@ -147,8 +147,8 @@ initialize(() => {
   );
 
   // check and install the build-in script
-  initBuildin();
-  console.info('initBuildin...');
+  // initBuildin();
+  // console.info('initBuildin...');
   setTimeout(autoUpdate, IS_DEV ? 1 : 2e4);
   sync.initialize();
   checkRemove();
